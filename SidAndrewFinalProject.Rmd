@@ -15,10 +15,16 @@ library(tidyverse)
 ## a) Read the four CSV files into R, building four data frames with the names “Cases”, “Parents”, “Children” and “Payments”. Show the dimensions of these data frames. (You may find it useful to save these data frames as Rdata objects in a file using the save command. You can then recover them with the load command more quickly than reading the CSV file.)
 
 ```{r}
-cases <- as.data.frame(read.csv("cases.csv"))
-parents <- as.data.frame(read.csv("parents.csv"))
-children <- as.data.frame(read.csv("children.csv"))
-payments <- as.data.frame(read.csv("payments.csv"))
+
+csvToDf = function(v) {
+  return(as.data.frame(read.csv(v)))
+  
+}
+
+cases <- csvToDf("cases.csv")
+parents <- csvToDf("parents.csv")
+children <- csvToDf("children.csv")
+payments <- csvToDf("payments.csv")
 
 ```
 
