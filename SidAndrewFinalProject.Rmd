@@ -5,15 +5,46 @@ date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
+```{r}
+library(tidyverse)
+```
+
+
 # Question 1. File Linkage Integrity
 
 ## a) Read the four CSV files into R, building four data frames with the names “Cases”, “Parents”, “Children” and “Payments”. Show the dimensions of these data frames. (You may find it useful to save these data frames as Rdata objects in a file using the save command. You can then recover them with the load command more quickly than reading the CSV file.)
+
 ```{r}
-Cases <- as.data.frame(read.csv("cases.csv"))
-Parents <- as.data.frame(read.csv("parents.csv"))
-Children <- as.data.frame(read.csv("children.csv"))
-Payments <- as.data.frame(read.csv("payments.csv"))
+cases <- as.data.frame(read.csv("cases.csv"))
+parents <- as.data.frame(read.csv("parents.csv"))
+children <- as.data.frame(read.csv("children.csv"))
+payments <- as.data.frame(read.csv("payments.csv"))
+
 ```
+
+## b) What is the distribution of the number of children attached to a case? Show an appropriate plot of the distribution, and mark the location of the average number in the plot.
+
+```{r}
+
+number <- children %>% select(CASE_NUM, ID) %>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>% ungroup(CASE_NUM) %>% summarize(mean(numberchildren))
+
+
+children %>% select(CASE_NUM, ID)%>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>%
+  ggplot(mapping = aes(x = numberchildren)) + geom_histogram(binwidth = 1) + geom_vline(xintercept = as.numeric(number), size = 5, color = "red")
+  
+
+```
+## c) The file children.csv may have more than one record for each child. What is the largest number of cases associated with a child, and indicate why you believe that this is indeed the same child.
+
+```{r}
+
+children %>% select(ID, CASE_NUM) %>% group_by(ID) %>% mutate(childCaseCount = n()) %>% tally() %>% summarize(max(n))
+```
+
+This is the same child because we grouped by ID, which identifies the child. Timmy has 12 cases of child support, as a child needing support. 
+
+## d) Does every absent parent (AP_ID) identified in the payments data have an identifying record in the parents data file?
+
 
 # Question 2: Recoding Categories
 
