@@ -100,6 +100,30 @@ pool_categories(payments.short$PYMNT_SRC, 100)
 
 # Question 3: Payment counts and amounts
 
+You must use ggplot2 for generating the plots asked for in this question.
+
+## (a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find ### (i) the range of dates of all payments and 
+```{r}
+payments <- payments %>% mutate(DATE = as.Date(payments$COLLECTION_DT, "%m/%d/%Y")) %>% arrange(order(DATE))
+payments[order(payments$DATE)]
+
+payments[1,]
+payments[length(payments),]
+```
+
+
+### (ii) the percentage of the total number of payments made before May 1, 2015.
+## (b) Show a sequence plot of the total number of payments made on each day from May 1, 2015 through the end of the data.
+## (c) What explains the bimodal shape of the marginal distribution of the number of payments over this time period? Explain with some evidence how you reached your opinion.
+## (d) Describe the distribution of the payment amounts. Do you have an explanation for its shape? (You
+might find it useful to work with a sample for plotting. R takes a while to draw 1.5 million points.)
+
+
+```{r}
+
+```
+
+
 # Question 4: Payments for Cases
 
 # Question 5: Consistency
