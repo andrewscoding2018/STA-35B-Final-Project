@@ -64,8 +64,15 @@ parents_AP_ID <- unique(parents_AP_ID)
 identical(payments_AP_ID, parents_AP_ID)
 ```
 
-
 # Question 2: Recoding Categories
+
+Some categorical variables among these data frames are sparse (seldom observed). For example, the variable PYMNT_SRC in Payments has category ‘M’ with 2 cases and category ‘R’ with 7. These are too few for modeling in regression.
+
+Write a function named “pool_categories” that recodes a categorical variable into a “simpler” factor with fewer categories by pooling categories with counts below a threshold into a category labeled ‘Other’ (a factor level which your function should check does not already exist!). You might find the R function %in% useful for this exercise.
+
+```{r}
+
+```
 
 # Question 3: Payment counts and amounts
 
