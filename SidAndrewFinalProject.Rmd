@@ -51,6 +51,19 @@ This is the same child because we grouped by ID, which identifies the child. Tim
 
 ## d) Does every absent parent (AP_ID) identified in the payments data have an identifying record in the parents data file?
 
+```{r}
+# Gets all the unique AP_IDs from the payments data file
+payments_AP_ID <- payments %>% select(AP_ID) %>% arrange() %>% pull()
+payments_AP_ID <- unique(payments_AP_ID)
+
+# Gets all the unique AP_IDs from the payments data file
+parents_AP_ID <- parents %>% select(AP_ID) %>% arrange() %>% pull()
+parents_AP_ID <- unique(parents_AP_ID)
+
+# Checks if AP_IDs are identical
+identical(payments_AP_ID, parents_AP_ID)
+```
+
 
 # Question 2: Recoding Categories
 
