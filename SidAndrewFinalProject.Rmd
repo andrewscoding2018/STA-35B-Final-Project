@@ -100,6 +100,24 @@ pool_categories(payments.short$PYMNT_SRC, 100)
 
 # Question 3: Payment counts and amounts
 
+## a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find (i) the range of dates of all payments and (ii) the percentage of the total number of payments made before May 1, 2015.
+
+```{r}
+library(lubridate) # Aids in dealing with dates and times
+```
+
+```{r}
+# Part i)
+payments$DATE <- mdy_hms(payments$COLLECTION_DT) # Converts COLLECTION_DT to Date type and stores it in DATE column
+
+range(payments$DATE) # Gets the range of dates
+
+# Part ii)
+payments_made <- payments %>% filter(DATE > as.Date("2015-05-01")) # Returns a df of payments made before 2015-05-01
+perc_payments_made <- (nrow(payments_made) / length(payments$DATE)) * 100 # Percentage of payments made before 2015-05-01
+perc_payments_made
+```
+
 # Question 4: Payments for Cases
 
 # Question 5: Consistency
