@@ -72,6 +72,30 @@ Write a function named “pool_categories” that recodes a categorical variable
 
 ```{r}
 
+payments.short <- payments %>% slice(1:1000)
+
+pool_categories = function(variable, min){
+  
+  nameUse <- "Other";
+  
+  var.copy <- variable
+  var_factor <- as.factor(var.copy)
+  var_levels <- levels(var_factor)
+  
+  if(length(which(var_levels %in% "Other")) != 0)nameUse <- "Other1";
+  
+  levels(var_factor) <- c(levels(var_factor), nameUse)
+  
+  for(level in var_levels){
+    if(sum(var.copy %in% level) < min){
+      var.copy[which(variable == level)] <- nameUse
+    }
+  }
+  return(as.factor(var.copy)) 
+}
+
+pool_categories(payments.short$PYMNT_SRC, 100)
+
 ```
 
 # Question 3: Payment counts and amounts
