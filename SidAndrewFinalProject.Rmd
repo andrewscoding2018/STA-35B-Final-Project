@@ -104,11 +104,12 @@ You must use ggplot2 for generating the plots asked for in this question.
 
 ## (a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find ### (i) the range of dates of all payments and 
 ```{r}
-payments <- payments %>% mutate(DATE = as.Date(payments$COLLECTION_DT, "%m/%d/%Y")) %>% arrange(order(DATE))
-payments[order(payments$DATE)]
+payments <- payments %>% mutate(DATE = as.Date(payments$COLLECTION_DT, "%m/%d/%Y")) %>% arrange(order(DATE),)
 
-payments[1,]
-payments[length(payments),]
+orderDate <- payments[order(payments$DATE),]
+orderDate[1,]
+orderDate[length(orderDate),]
+
 ```
 
 
