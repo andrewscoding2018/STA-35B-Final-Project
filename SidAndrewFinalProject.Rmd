@@ -100,6 +100,7 @@ pool_categories(payments.short$PYMNT_SRC, 100)
 
 # Question 3: Payment counts and amounts
 
+<<<<<<< HEAD
 You must use ggplot2 for generating the plots asked for in this question.
 
 ## (a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find ### (i) the range of dates of all payments and 
@@ -124,6 +125,7 @@ might find it useful to work with a sample for plotting. R takes a while to draw
 times <- strftime()
 ```
 
+=======
 ## a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find (i) the range of dates of all payments and (ii) the percentage of the total number of payments made before May 1, 2015.
 
 ```{r}
@@ -175,11 +177,17 @@ inner_join(children, payments, by = "CASE_NUM") %>% select(CASE_NUM, ID, PYMNT_A
 ```
 
 
+>>>>>>> Question-3
 
 # Question 4: Payments for Cases
 
 The unit of analysis for this question is the payment behavior of an absent parent. Hence, if the parent is involved in several cases, you will need to accumulate the relevant information. You may find it useful for this and the next question to build a data frame for parents that collects the relevant information for each parent. You may find dplyr useful here and elsewhere, but you don’t have to use it.
 
+## (a) It has been conjectured that parents deemed responsible for more children are more likely to make either a larger number of payments or a larger total payment amount over this period. Is that true?
+
+```{r}
+left_join(children, payments, by = "CASE_NUM") %>% group_by(AP_ID) %>% summarize(sum)
+```
 
 
 # Question 5: Consistency
