@@ -121,10 +121,65 @@ might find it useful to work with a sample for plotting. R takes a while to draw
 
 
 ```{r}
+times <- strftime()
+```
 
+## a) Make a variable Payments$DATE which is a viable R date by converting the COLLECTION_DT variable. Use this variable to find (i) the range of dates of all payments and (ii) the percentage of the total number of payments made before May 1, 2015.
+
+```{r}
+library(lubridate) # Aids in dealing with dates and times
+```
+
+```{r}
+# Part i)
+payments$DATE <- mdy_hms(payments$COLLECTION_DT) # Converts COLLECTION_DT to Date type and stores it in DATE column
+
+range(payments$DATE) # Gets the range of dates
+
+# Part ii)
+payments_made <- payments %>% filter(DATE < as.Date("2015-05-01")) # Returns a df of payments made before 2015-05-01
+perc_payments_made <- (nrow(payments_made) / length(payments$DATE)) * 100 # Percentage of payments made before 2015-05-01
+perc_payments_made
+```
+
+## (b) Show a sequence plot of the total number of payments made on each day from May 1, 2015 through the end of the data.
+```{r}
+payments %>% group_by(DATE) %>% summarize(daily_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = DATE, y = daily_pymt)) + 
+  geom_point() +
+  geom
+```
+
+## (c) What explains the bimodal shape of the marginal distribution of the number of payments over this time period? Explain with some evidence how you reached your opinion.
+
+```{r}
+payments %>% group_by(DATE) %>% summarize(daily_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = daily_pymt)) + 
+  geom_density()
+```
+
+Since we know that there is one payment made per child, the number of daily payments made is equivalent to the number
+
+
+## (d) Describe the distribution of the payment amounts. Do you have an explanation for its shape? (You
+might find it useful to work with a sample for plotting. R takes a while to draw 1.5 million points.)
+
+First, let's graph the distribution with a sample of 100,000 points:
+
+```{r}
+sample_n(payments, 100000) %>% ggplot(mapping = aes(x = log(PYMNT_AMT))) + geom_density()
+```
+We can see that payment amount is far less before 2015. Furthermore, we can also see that there is only one "level" of payment before 2015, whereas after we can see that there are several different levels of payment.
+
+
+```{r}
+inner_join(children, payments, by = "CASE_NUM") %>% select(CASE_NUM, ID, PYMNT_AMT, DATE) %>% filter(DATE >= as.Date("2015-01-01")) %>% group_by(DATE) %>% summarize(num_child = length(PYMNT_AMT))
 ```
 
 
+
 # Question 4: Payments for Cases
+
+The unit of analysis for this question is the payment behavior of an absent parent. Hence, if the parent is involved in several cases, you will need to accumulate the relevant information. You may find it useful for this and the next question to build a data frame for parents that collects the relevant information for each parent. You may find dplyr useful here and elsewhere, but you don’t have to use it.
+
+
 
 # Question 5: Consistency
