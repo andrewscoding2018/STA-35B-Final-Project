@@ -218,3 +218,18 @@ cor(children_and_payments_cln2$mean_age, children_and_payments_cln2$num_pymnt)
 The Pearson Correlation Coefficient appears to be very small; therefore, there isn't a strong correlation between the mean age of the children and the number of payments made
 
 # Question 5: Consistency
+
+Again, the unit of analysis for this question is an absent parent. An important aspect of payments is the
+consistency of the payments over time. A steady income stream is, for many, preferable to a highly volatile,
+unpredictable payment schedule, even if the latter has a higher average.
+
+## (a) Among all parents who made payments, is there any association between the SD of total daily payments and the average of total daily payments?
+
+```{r}
+
+```
+
+
+## (b) The coefficient of variation (CV) is the ratio of the SD of daily payments to the mean. Show time sequence plots of the payments of 3 parents, with low, medium and high CV. That is, find three representative parents who make payments. One of these three should have a high CV, another an medium CV, and a third a low CV.
+## (c) Is the CV of payments associated with the total amount of payments over this time period?
+## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
