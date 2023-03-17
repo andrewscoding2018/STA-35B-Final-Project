@@ -120,8 +120,7 @@ perc_payments_made
 ## (b) Show a sequence plot of the total number of payments made on each day from May 1, 2015 through the end of the data.
 ```{r}
 payments %>% group_by(DATE) %>% summarize(daily_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = DATE, y = daily_pymt)) + 
-  geom_point() +
-  geom
+  geom_point()
 ```
 
 ## (c) What explains the bimodal shape of the marginal distribution of the number of payments over this time period? Explain with some evidence how you reached your opinion.
@@ -131,6 +130,7 @@ payments %>% group_by(DATE) %>% summarize(daily_pymt = length(PYMNT_AMT)) %>% fi
   geom_density()
 ```
 
+*Come back to this!!*
 Since we know that there is one payment made per child, the number of daily payments made is equivalent to the number
 
 
@@ -155,9 +155,66 @@ The unit of analysis for this question is the payment behavior of an absent pare
 
 ## (a) It has been conjectured that parents deemed responsible for more children are more likely to make either a larger number of payments or a larger total payment amount over this period. Is that true?
 
+* First, we join the children and payments data sets in order to find the number of children per absent parent
+  + We also summarize the number of payments made, as well as the sum of these payments to see if there is any correlation between number of children and number of payments / total payment amount
+    
 ```{r}
-left_join(children, payments, by = "CASE_NUM") %>% group_by(AP_ID) %>% summarize(sum)
+joined_frame <- left_join(children, payments, by = "CASE_NUM")
+children_and_pymnts <- joined_frame %>% group_by(AP_ID) %>% 
+  summarize(num_child = length(unique(ID)), num_pymnt = length(PYMNT_AMT), total_pymnt = sum(PYMNT_AMT))
+
+head(children_and_pymnts)
 ```
 
+* Next, we check if there are any NA values for us to omit
+
+```{r}
+children_and_pymnts %>% filter(is.na(AP_ID)) # Finds NA row
+
+children_and_pymnts_cln <- na.omit(children_and_pymnts) # Removes NA row
+
+nrow(children_and_pymnts) - nrow(children_and_pymnts_cln) # Checks number of rows removed (it should only be 1!)
+```
+
+* We want to test whether "parents deemed responsible for more children are more likely to make either a larger number of payments or a larger total payment amount over this period"
+  + For this, we can compare the correlations of "number of children vs number of payments" and "number of children vs total payments"
+
+```{r}
+cor(children_and_pymnts_cln$num_child, children_and_pymnts_cln$num_pymnt) # Number of children vs number of payments
+cor(children_and_pymnts_cln$num_child, children_and_pymnts_cln$total_pymnt) # Number of children vs total payments
+```
+
+* We can see from the respective Pearson Correlation Coefficients that parents deemed responsible for more children are more likely to make a larger total payment over the time period rather than make more payments
+
+## (b) It has been conjectured that parents responsible for younger children are more likely to make more payments. Is the average age of the children of an absent parent associated with the total amount of payments made by the absent parent? (Define a child’s age as the age on Jan 1, 2017.))
+
+```{r}
+DOB_fixed <- mdy_hms(joined_frame$DATE_OF_BIRTH_DT) # fix the DATE-OF_BIRTH_DT variable so we are now working with Date objects
+
+# Here we are creating a data frame that includes the mean age of the children for each absent parent
+children_and_payments2 <- joined_frame %>% mutate(
+  age = 2017 - (year(DOB_fixed) + (month(DOB_fixed) / 12) + (day(DOB_fixed) / 365.25))) %>% 
+  group_by(AP_ID) %>% 
+  summarize(num_child = length(unique(ID)), 
+    num_pymnt = length(PYMNT_AMT), 
+    mean_age = mean(age))
+```
+
+```{r}
+# Omit any NA values and check number of rows removed
+children_and_payments_cln2 <- na.omit(children_and_payments2)
+nrow(children_and_payments2) - nrow(children_and_payments_cln2)
+
+# Preview 
+head(children_and_payments_cln2)
+```
+
+* We now look at the correlation between mean age and the number of payments made using the Pearson Correlation Coefficient
+
+```{r}
+cor(children_and_payments_cln2$mean_age, children_and_payments_cln2$num_pymnt)
+```
+
+The Pearson Correlation Coefficient appears to be very small; therefore, there isn't a strong correlation between the mean age of the children and the number of payments made
 
 # Question 5: Consistency
