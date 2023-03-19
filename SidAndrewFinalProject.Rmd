@@ -127,11 +127,29 @@ payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filt
 
 ```{r}
 payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = num_pymt)) + 
+  geom_histogram()
+```
+
+* There are two peaks in our data: one around 2.5k payments and one around 6k payments. The reason we have a bi-modal distribution in our data is because the higher range of payments are typically being made by males
+
+```{r}
+# Graph for male APs
+left_join(parents, payments, by = "AP_ID") %>% filter(SEX_CD == "M") %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = num_pymt)) + 
+  geom_density()
+
+# Graph for female APs
+left_join(parents, payments, by = "AP_ID") %>% filter(SEX_CD == "F") %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = num_pymt)) + 
   geom_density()
 ```
 
-* There are two peaks in our data: one around 2.5k payments and one around 6k payments. The first peak is likely telling us that most days have this number of payments, whereas the second peak is the result of some kind of a special event
+Let's now look at the number of male vs female absent parents:
 
+```{r}
+sum(parents$SEX_CD == "M")
+sum(parents$SEX_CD == "F")
+```
+
+Since there are more males in the data set, the distribution of number of payments paid more closely resembles that of male absent parents
 
 ```{r}
 payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01"), num_pymt > 2000 & num_pymt < 3000) %>% ggplot(mapping = aes(x = month(DATE), y = num_pymt)) + 
@@ -205,7 +223,7 @@ cor(children_and_pymnts$num_child, children_and_pymnts$total_pymnt) # Number of 
 DOB_fixed <- mdy_hms(joined_frame$DATE_OF_BIRTH_DT) # fix the DATE-OF_BIRTH_DT variable so we are now working with Date objects
 
 # Here we are creating a data frame that includes the mean age of the children for each absent parent
-children_and_payments2 <- joined_frame %>% mutate(
+children_and_pymnts2 <- joined_frame %>% mutate(
   age = 2017 - (year(DOB_fixed) + (month(DOB_fixed) / 12) + (day(DOB_fixed) / 365))) %>%
   group_by(AP_ID) %>% 
   summarize(num_child = length(unique(ID)), 
@@ -214,17 +232,19 @@ children_and_payments2 <- joined_frame %>% mutate(
 ```
 
 ```{r}
+children_and_pymnts2["total_pymnt"][is.na(children_and_pymnts2["total_pymnt"])] <- 0
+
 # Omit any NA values
-children_and_payments2 <- na.omit(children_and_payments2)
+children_and_pymnts2 <- na.omit(children_and_pymnts2)
 
 # Preview 
-head(children_and_payments2)
+head(children_and_pymnts2)
 ```
 
 * We now look at the correlation between mean age and the number of payments made using the Pearson Correlation Coefficient
 
 ```{r}
-cor(children_and_payments2$mean_age, children_and_payments2$total_pymnt)
+cor(children_and_pymnts2$mean_age, children_and_pymnts2$total_pymnt)
 ```
 
 The Pearson Correlation Coefficient appears to be very small; therefore, there isn't a strong correlation between the mean age of the children and the number of payments made
@@ -242,20 +262,26 @@ The Pearson Correlation Coefficient appears to be very small; therefore, there i
 ```{r}
 # Visualization
 temp_df <- left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP)
-boxplot(total_pymnt ~ AP_ADDR_ZIP, data = temp_df)
+temp_df %>% ggplot(mapping = aes(x = as.factor(AP_ADDR_ZIP), y = (total_pymnt))) + geom_boxplot()
 ```
 
 All the means looks roughly the same, so we can proceed
 
-*See if we actually have to prove assumptions!!*
 ```{r}
 left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP) %>% 
   ggplot(mapping = aes(log(total_pymnt))) + geom_density() + facet_grid(~AP_ADDR_ZIP)
 ```
 
+    - Assumption 3: we assume that the population variances are equal across responses for each category
+```{r}
+left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP) %>% group_by(AP_ADDR_ZIP) %>% summarize(sd = sd(total_pymnt))
+```
+
+
   + Step 2/3: find F-statistic and p-value
 ```{r}
-model <- aov(children_and_pymnts$total_pymnt ~ parents$AP_ADDR_ZIP)
+parents$factor_ADDR <- as.factor(parents$AP_ADDR_ZIP)
+model <- aov(children_and_pymnts$total_pymnt ~ parents$factor_ADDR)
 summary(model)
 ```
   + Step 4: make a decision
@@ -315,3 +341,25 @@ paymentgraph %>% ggplot(mapping = aes(x = cv)) +
 ```
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
+* We can answer this question using multiple linear regression We set up the following hypothesis test with a confidence level of 95%:
+  + Step 1: make assumptions and state null / alternate hypothesis
+    - First, we'll create the graphs and see if we can continue
+```{r}
+linear_model <- lm(total_pymnt ~ num_child + mean_age, data = children_and_payments2)
+plot(linear_model)
+```
+
+    - We conclude assumptions have been met, so we can continue
+    - H0: The number of children and mean ages of the children are not predictors of the total payment amount (Bi = ... = Bk = 0)
+    - Ha: The number of children and mean ages of the children *are* predictors of the total payment amount (at least one Bj != 0)
+    
+  + Step 2/3: find the t-statistic and p-value
+```{r}
+summary(linear_model)
+```
+  + Step 4: make a decision
+    - Since the p-value is less than 0.05, we reject the null hypothesis
+  + Step 5: state a conclusion
+    - Since the p-value is less than 0.05, we reject the null hypothesis that the number of children and mean ages of the children are not predictors of the total payment amount
+
+# Question 5: Consistency_line()
