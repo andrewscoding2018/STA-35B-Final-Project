@@ -281,9 +281,11 @@ Hints:
 
 cases[-which(cases$LAST_PYMNT_DT == ""),]
 
-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% summarize(cor(sum(PYMNT_AMT), sd(PYMNT_AMT)))
+pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
 
-#summarize(sum(PYMNT_AMT))
+pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
+
+pyments1sd %>% summarize(cor(sd1, mean1))
 
 ```
 
@@ -292,10 +294,24 @@ full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>
 
 ```{r}
 
+pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
+
+pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
+
+paymentgraph <- pyments1sd %>% mutate(cv = sd1/mean1)
+paymentgraph %>% ggplot(mapping = aes(x = cv)) +
+  geom_histogram()
+
 
 
 ```
 
 
 ## (c) Is the CV of payments associated with the total amount of payments over this time period?
+
+```{r}
+
+
+```
+
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
