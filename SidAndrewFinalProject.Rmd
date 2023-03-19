@@ -74,6 +74,8 @@ Write a function named “pool_categories” that recodes a categorical variable
 
 payments.short <- payments %>% slice(1:1000)
 
+as.factor(payments.short$PYMNT_SRC)
+
 pool_categories = function(variable, min){
   
   nameUse <- "Other";
