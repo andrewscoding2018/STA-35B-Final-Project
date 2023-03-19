@@ -303,6 +303,8 @@ summarySD %>% mutate(cv = sd/mean) %>% mutate(level = ifelse(cv < 0.7, "low", if
 
 ## (c) Is the CV of payments associated with the total amount of payments over this time period?
 
+There is a weak correlation between n, the total amount of payments. 
+
 ```{r}
 
 summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE), n = n())
@@ -312,6 +314,28 @@ payment_Summary
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
 
+It looks like Payment Amount, Payment SRC and Payment Type have a statistically significant relation to the likelihood that the parent will have a cv less than 0.5. 
+
+```{r}
+
+
+payment_Summary <- payments %>% na.omit() %>% group_by(DATE, AP_ID) %>% summarize(totalDailySum = sum(PYMNT_AMT))
+
+
+summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE))
+summarySD %>% mutate(cv = (sd/mean))
+
+summarySD2 <- summarySD %>% mutate(cv = sd/mean) %>% mutate(level = cv < 0.5)
+summarySD2
+
+cvAttributes <- left_join(payments, summarySD2, by = "DATE") %>% mutate(cv = sd/mean)
+cvAttributes
+
+summary(aov(level ~ CASE_NUM + PYMNT_AMT + DATE + PYMNT_SRC + PYMNT_TYPE + AP_ID, data = cvAttributes))
+
+
+
+```
 
 
 
