@@ -279,29 +279,21 @@ Hints:
 
 ```{r}
 
-cases[-which(cases$LAST_PYMNT_DT == ""),]
+payment_Summary <- payments %>% na.omit() %>% group_by(DATE, AP_ID) %>% select(PYMNT_AMT) %>% summarize(totalDailySum = sum(PYMNT_AMT))
 
-pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
+summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE))
 
-pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
-
-pyments1sd %>% summarize(cor(sd1, mean1))
-
+summarySD %>% summarize(cor = cor(sd, mean))
 ```
-
 
 ## (b) The coefficient of variation (CV) is the ratio of the SD of daily payments to the mean. Show time sequence plots of the payments of 3 parents, with low, medium and high CV. That is, find three representative parents who make payments. One of these three should have a high CV, another an medium CV, and a third a low CV.
 
 ```{r}
 
-pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
-
-pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
-
-paymentgraph <- pyments1sd %>% mutate(cv = sd1/mean1)
-paymentgraph %>% ggplot(mapping = aes(x = cv)) +
-  geom_histogram()
-
+summarySD %>% mutate(cv = sd/mean) %>% mutate(level = ifelse(cv < 0.7, "low", ifelse(cv < 1.4, "medium", ifelse(cv<10000, "high")))) %>% ggplot(mapping = aes(x = DATE, y = cv)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~level)
 
 
 ```
@@ -311,7 +303,14 @@ paymentgraph %>% ggplot(mapping = aes(x = cv)) +
 
 ```{r}
 
+summarySD %>% mutate(cv = sd/mean)
 
 ```
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
+
+
+
+
+
+
