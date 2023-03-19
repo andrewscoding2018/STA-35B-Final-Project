@@ -24,16 +24,20 @@ cases <- csvToDf("cases.csv")
 parents <- csvToDf("parents.csv")
 children <- csvToDf("children.csv")
 payments <- csvToDf("payments.csv")
+
+dim(cases)
+dim(parents)
+dim(children)
+dim(payments)
 ```
 
 ## b) What is the distribution of the number of children attached to a case? Show an appropriate plot of the distribution, and mark the location of the average number in the plot.
 
 ```{r}
-number <- children %>% select(CASE_NUM, ID) %>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>% ungroup(CASE_NUM) %>% summarize(mean(numberchildren))
-
+number <- children %>% select(CASE_NUM, ID) %>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>% ungroup(CASE_NUM) %>% summarize(mean(numberchildren)) # Mean number of children
 
 children %>% select(CASE_NUM, ID)%>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>%
-  ggplot(mapping = aes(x = numberchildren)) + geom_histogram(binwidth = 1) + geom_vline(xintercept = as.numeric(number), size = 5, color = "red")
+  ggplot(mapping = aes(x = numberchildren)) + geom_histogram(binwidth = 1) + geom_vline(xintercept = as.numeric(number), size = 5, color = "red") # Graph
 ```
 ## c) The file children.csv may have more than one record for each child. What is the largest number of cases associated with a child, and indicate why you believe that this is indeed the same child.
 
@@ -41,7 +45,7 @@ children %>% select(CASE_NUM, ID)%>% group_by(CASE_NUM) %>% mutate(numberchildre
 children %>% select(ID, CASE_NUM) %>% group_by(ID) %>% mutate(childCaseCount = n()) %>% tally() %>% summarize(max(n))
 ```
 
-This is the same child because we grouped by ID, which identifies the child. Timmy has 12 cases of child support, as a child needing support. 
+This is the same child because we grouped by ID, which identifies the child. This child has 12 cases of child support, as a child needing support. 
 
 ## d) Does every absent parent (AP_ID) identified in the payments data have an identifying record in the parents data file?
 
@@ -58,6 +62,8 @@ parents_AP_ID <- unique(parents_AP_ID)
 identical(payments_AP_ID, parents_AP_ID)
 ```
 
+Not every parent from the parents data file is present in the payments data. This likely means that there are parents who did not pay child support
+
 # Question 2: Recoding Categories
 
 Some categorical variables among these data frames are sparse (seldom observed). For example, the variable PYMNT_SRC in Payments has category ‘M’ with 2 cases and category ‘R’ with 7. These are too few for modeling in regression.
@@ -66,6 +72,8 @@ Write a function named “pool_categories” that recodes a categorical variable
 
 ```{r}
 payments.short <- payments %>% slice(1:1000)
+
+as.factor(payments.short$PYMNT_SRC)
 
 pool_categories = function(variable, min){
   
@@ -123,26 +131,32 @@ payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filt
   geom_histogram()
 ```
 
-* There are two peaks in our data: one around 2.5k payments and one around 6k payments. The reason we have a bi-modal distribution in our data is because the higher range of payments are typically being made by males
+* The two peaks in our data could be due to different payment plans, where some parents choose to pay a larger amount more infrequently and others choose to pay a smaller amount more frequently
+
+* We can try a linear regression test at a 95% confidence level to see if total number of payments and total amount paid are related
+
+  + Step 1: check assumptions and state null hypothesis:
+    - First, let's see if the association is roughly linear
 
 ```{r}
-# Graph for male APs
-left_join(parents, payments, by = "AP_ID") %>% filter(SEX_CD == "M") %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = num_pymt)) + 
-  geom_density()
-
-# Graph for female APs
-left_join(parents, payments, by = "AP_ID") %>% filter(SEX_CD == "F") %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = num_pymt)) + 
-  geom_density()
+f <- payments %>% filter(DATE >= as.Date("2015-05-01")) %>% group_by(AP_ID, DATE) %>% summarize(num_pymnts = length(PYMNT_AMT), total_pymnts = sum(PYMNT_AMT))
+f %>% ggplot(mapping = aes(x = num_pymnts, y = total_pymnts)) + geom_point()
 ```
 
-Let's now look at the number of male vs female absent parents:
+    - H0: there is no relationship between number of payments and total amount in payments
+    - Ha: there *is* a relationship between number of payments and total amount in payments
 
+  + Step 2/3: find the t-statistic and p-value
 ```{r}
-sum(parents$SEX_CD == "M")
-sum(parents$SEX_CD == "F")
+summary(lm(total_pymnts ~ num_pymnts, data = f))
 ```
 
-Since there are more males in the data set, the distribution of number of payments paid more closely resembles that of male absent parents
+  + Step 4: make a decision
+    - Since the p-value is less than 0.05, we reject the null hypothesis
+    
+  + Step 5: state a conclusion
+    - Since the p-value is less than 0.05, we reject the null hypothesis that there is no relationship between the number of payments and total amount in payments
+
 
 ## (d) Describe the distribution of the payment amounts. Do you have an explanation for its shape? (You
 might find it useful to work with a sample for plotting. R takes a while to draw 1.5 million points.)
@@ -152,11 +166,7 @@ First, let's graph the distribution with a sample of 100,000 points:
 ```{r}
 sample_n(payments, 100000) %>% ggplot(mapping = aes(x = log(PYMNT_AMT))) + geom_density()
 ```
-We can see that payment amount is far less before 2015. Furthermore, we can also see that there is only one "level" of payment before 2015, whereas after we can see that there are several different levels of payment.
-
-```{r}
-inner_join(children, payments, by = "CASE_NUM") %>% select(CASE_NUM, ID, PYMNT_AMT, DATE) %>% filter(DATE >= as.Date("2015-01-01")) %>% group_by(DATE) %>% summarize(num_child = length(PYMNT_AMT))
-```
+Overall, people don't tend to pay extremely high or low amounts; rather, they sit somewhere in the middle
 
 # Question 4: Payments for Cases
 
@@ -241,13 +251,29 @@ children_and_pymnts2 <- na.omit(children_and_pymnts2)
 head(children_and_pymnts2)
 ```
 
-* We now look at the correlation between mean age and the number of payments made using the Pearson Correlation Coefficient
+* We now look at the correlation between mean age and the number of payments made using a correlation test at the 95% confidence level
+
+  + Step 1: check assumptions and state null and alternate hypothesis
+    - First, let's graph the variables to see if they have an approximately linear relationship
+    
+```{r}
+plot(children_and_pymnts2$mean_age, children_and_pymnts2$total_pymnt)
+```
+    
+    - H0: there is no correlation between mean age and total payment
+    - Ha: there *is* a correlation between mean age and total payment
+    
+  + Step 2/3: find the t-statistic and p-value
 
 ```{r}
-cor(children_and_pymnts2$mean_age, children_and_pymnts2$total_pymnt)
+cor.test(children_and_pymnts2$mean_age, children_and_pymnts2$total_pymnt)
 ```
 
-The Pearson Correlation Coefficient appears to be very small; therefore, there isn't a strong correlation between the mean age of the children and the number of payments made
+  + Step 4: make a decision
+    - Since the p-value is less than 0.05, we reject the null hypothesis
+    
+  + Step 5: state a conclusion
+    - Since the p-value is less than 0.05, we reject the null hypothesis that there is no correlation between mean age and total payment. However, the Pearson Correlation Coefficient appears to be very small; therefore, there isn't a strong correlation between the mean age of the children and the number of payments made
 
 ## (c) Does the location of the parent (AP_ADDR_ZIP) anticipate the total amount of payments made by the absent parent?
 
@@ -327,29 +353,21 @@ Hints:
 
 ```{r}
 
-cases[-which(cases$LAST_PYMNT_DT == ""),]
+payment_Summary <- payments %>% na.omit() %>% group_by(DATE, AP_ID) %>% select(PYMNT_AMT) %>% summarize(totalDailySum = sum(PYMNT_AMT))
 
-pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
+summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE))
 
-pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
-
-pyments1sd %>% summarize(cor(sd1, mean1))
-
+summarySD %>% summarize(cor = cor(sd, mean))
 ```
-
 
 ## (b) The coefficient of variation (CV) is the ratio of the SD of daily payments to the mean. Show time sequence plots of the payments of 3 parents, with low, medium and high CV. That is, find three representative parents who make payments. One of these three should have a high CV, another an medium CV, and a third a low CV.
 
 ```{r}
 
-pyments <-full_join(payments, parents, by = "AP_ID") %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sum = sum(na.omit(PYMNT_AMT)))
-
-pyments1sd <- pyments %>% group_by(AP_ID, COLLECTION_DT) %>% mutate(sd1 = sd(sum), mean1 = mean(na.omit(sum)))
-
-paymentgraph <- pyments1sd %>% mutate(cv = sd1/mean1)
-paymentgraph %>% ggplot(mapping = aes(x = cv)) +
-  geom_histogram()
-
+summarySD %>% mutate(cv = sd/mean) %>% mutate(level = ifelse(cv < 0.7, "low", ifelse(cv < 1.4, "medium", ifelse(cv<10000, "high")))) %>% ggplot(mapping = aes(x = DATE, y = cv)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~level)
 
 
 ```
@@ -359,30 +377,9 @@ paymentgraph %>% ggplot(mapping = aes(x = cv)) +
 
 ```{r}
 
-
+summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE), n = n())
+summarySD %>% mutate(cv = sd/mean) %>% summarize(cor = cor(cv, n))
+payment_Summary
 ```
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
->>>>>>> Stashed changes
-* We can answer this question using multiple linear regression We set up the following hypothesis test with a confidence level of 95%:
-  + Step 1: make assumptions and state null / alternate hypothesis
-    - First, we'll create the graphs and see if we can continue
-```{r}
-linear_model <- lm(total_pymnt ~ num_child + mean_age, data = children_and_payments2)
-plot(linear_model)
-```
-
-    - We conclude assumptions have been met, so we can continue
-    - H0: The number of children and mean ages of the children are not predictors of the total payment amount (Bi = ... = Bk = 0)
-    - Ha: The number of children and mean ages of the children *are* predictors of the total payment amount (at least one Bj != 0)
-    
-  + Step 2/3: find the t-statistic and p-value
-```{r}
-summary(linear_model)
-```
-  + Step 4: make a decision
-    - Since the p-value is less than 0.05, we reject the null hypothesis
-  + Step 5: state a conclusion
-    - Since the p-value is less than 0.05, we reject the null hypothesis that the number of children and mean ages of the children are not predictors of the total payment amount
-
-# Question 5: Consistency_line()
