@@ -267,7 +267,6 @@ temp_df %>% ggplot(mapping = aes(x = as.factor(AP_ADDR_ZIP), y = (total_pymnt)))
 
 All the means looks roughly the same, so we can proceed
 
-*See if we actually have to prove assumptions!!*
 ```{r}
 left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP) %>% 
   ggplot(mapping = aes(log(total_pymnt))) + geom_density() + facet_grid(~AP_ADDR_ZIP)
@@ -314,4 +313,4 @@ summary(linear_model)
   + Step 5: state a conclusion
     - Since the p-value is less than 0.05, we reject the null hypothesis that the number of children and mean ages of the children are not predictors of the total payment amount
 
-# Question 5: Consistency
+# Question 5: Consistency_line()
