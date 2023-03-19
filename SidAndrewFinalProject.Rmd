@@ -305,8 +305,9 @@ summarySD %>% mutate(cv = sd/mean) %>% mutate(level = ifelse(cv < 0.7, "low", if
 
 ```{r}
 
-summarySD %>% mutate(cv = sd/mean)
-
+summarySD <- payment_Summary %>% group_by(DATE) %>% filter(n() > 1) %>% summarize(sd = sd(totalDailySum, na.rm = TRUE), mean = mean(totalDailySum, na.rm = TRUE), n = n())
+summarySD %>% mutate(cv = sd/mean) %>% summarize(cor = cor(cv, n))
+payment_Summary
 ```
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
