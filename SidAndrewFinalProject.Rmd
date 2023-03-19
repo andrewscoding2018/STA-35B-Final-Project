@@ -15,7 +15,6 @@ library(tidyverse)
 ## a) Read the four CSV files into R, building four data frames with the names “Cases”, “Parents”, “Children” and “Payments”. Show the dimensions of these data frames. (You may find it useful to save these data frames as Rdata objects in a file using the save command. You can then recover them with the load command more quickly than reading the CSV file.)
 
 ```{r}
-
 csvToDf = function(v) {
   return(as.data.frame(read.csv(v)))
   
@@ -25,25 +24,20 @@ cases <- csvToDf("cases.csv")
 parents <- csvToDf("parents.csv")
 children <- csvToDf("children.csv")
 payments <- csvToDf("payments.csv")
-
 ```
 
 ## b) What is the distribution of the number of children attached to a case? Show an appropriate plot of the distribution, and mark the location of the average number in the plot.
 
 ```{r}
-
 number <- children %>% select(CASE_NUM, ID) %>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>% ungroup(CASE_NUM) %>% summarize(mean(numberchildren))
 
 
 children %>% select(CASE_NUM, ID)%>% group_by(CASE_NUM) %>% mutate(numberchildren = length(ID)) %>%
   ggplot(mapping = aes(x = numberchildren)) + geom_histogram(binwidth = 1) + geom_vline(xintercept = as.numeric(number), size = 5, color = "red")
-  
-
 ```
 ## c) The file children.csv may have more than one record for each child. What is the largest number of cases associated with a child, and indicate why you believe that this is indeed the same child.
 
 ```{r}
-
 children %>% select(ID, CASE_NUM) %>% group_by(ID) %>% mutate(childCaseCount = n()) %>% tally() %>% summarize(max(n))
 ```
 
@@ -71,7 +65,6 @@ Some categorical variables among these data frames are sparse (seldom observed).
 Write a function named “pool_categories” that recodes a categorical variable into a “simpler” factor with fewer categories by pooling categories with counts below a threshold into a category labeled ‘Other’ (a factor level which your function should check does not already exist!). You might find the R function %in% useful for this exercise.
 
 ```{r}
-
 payments.short <- payments %>% slice(1:1000)
 
 pool_categories = function(variable, min){
@@ -120,7 +113,7 @@ perc_payments_made
 ## (b) Show a sequence plot of the total number of payments made on each day from May 1, 2015 through the end of the data.
 ```{r}
 payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01")) %>% ggplot(mapping = aes(x = DATE, y = num_pymt)) + 
-  geom_point()
+  geom_point() + geom_line()
 ```
 
 ## (c) What explains the bimodal shape of the marginal distribution of the number of payments over this time period? Explain with some evidence how you reached your opinion.
@@ -151,12 +144,6 @@ sum(parents$SEX_CD == "F")
 
 Since there are more males in the data set, the distribution of number of payments paid more closely resembles that of male absent parents
 
-```{r}
-payments %>% group_by(DATE) %>% summarize(num_pymt = length(PYMNT_AMT)) %>% filter(DATE >= as.Date("2015-05-01"), num_pymt > 2000 & num_pymt < 3000) %>% ggplot(mapping = aes(x = month(DATE), y = num_pymt)) + 
-  geom_point()
-```
-
-
 ## (d) Describe the distribution of the payment amounts. Do you have an explanation for its shape? (You
 might find it useful to work with a sample for plotting. R takes a while to draw 1.5 million points.)
 
@@ -166,7 +153,6 @@ First, let's graph the distribution with a sample of 100,000 points:
 sample_n(payments, 100000) %>% ggplot(mapping = aes(x = log(PYMNT_AMT))) + geom_density()
 ```
 We can see that payment amount is far less before 2015. Furthermore, we can also see that there is only one "level" of payment before 2015, whereas after we can see that there are several different levels of payment.
-
 
 ```{r}
 inner_join(children, payments, by = "CASE_NUM") %>% select(CASE_NUM, ID, PYMNT_AMT, DATE) %>% filter(DATE >= as.Date("2015-01-01")) %>% group_by(DATE) %>% summarize(num_child = length(PYMNT_AMT))
@@ -207,15 +193,29 @@ children_and_pymnts <- na.omit(children_and_pymnts) # Omit any remaining NA valu
 length(parents$AP_ID) == nrow(children_and_pymnts) # Check that we have the same number of AP_IDs across the board
 ```
 
-* We want to test whether "parents deemed responsible for more children are more likely to make either a larger number of payments or a larger total payment amount over this period"
-  + For this, we can compare the correlations of "number of children vs number of payments" and "number of children vs total payments"
-
+* We want to test whether "parents deemed responsible for more children are more likely to make either a larger number of payments or a larger total payment amount over this period." For this, we can compare the correlations of "number of children vs number of payments" and "number of children vs total payments" with a correlation test
+  + Step 1: check assumptions and state null and alternate hypothesis
+    - We assume that the variables are both quantitative and have a linear relationship
 ```{r}
-cor(children_and_pymnts$num_child, children_and_pymnts$num_pymnt) # Number of children vs number of payments
-cor(children_and_pymnts$num_child, children_and_pymnts$total_pymnt) # Number of children vs total payments
+children_and_pymnts %>% ggplot(mapping = aes(x = num_child, y = num_pymnt)) + geom_point()
 ```
 
-* We can see from the respective Pearson Correlation Coefficients that parents deemed responsible for more children are more likely to make a larger total payment over the time period rather than make more payments (if only by a little bit)
+```{r}
+children_and_pymnts %>% ggplot(mapping = aes(x = num_child, y = total_pymnt)) + geom_point()
+```
+    - Since both graphs are approximately normally distributed, we can proceed
+    - H0: there is no correlation between the variables
+    - Ha: there is a correlation between the variables
+  + Step 2: find t-statistic / p-value
+```{r}
+cor.test(children_and_pymnts$num_child, children_and_pymnts$num_pymnt)
+cor.test(children_and_pymnts$num_child, children_and_pymnts$total_pymnt)
+```
+  + Step 4: make a decision
+    - Since both p-values are less than 0.05, we reject both null hypothesis
+  + Step 5: state a claim
+    - Since both p-values are less than 0.05, we reject the null hypotheses that there is no correlation between the variables
+* Furthermore, looking at the individual correlations, we can see from the respective Pearson Correlation Coefficients that parents deemed responsible for more children are more likely to make a larger total payment over the time period rather than make more  payments (if only by a little bit)
 
 ## (b) It has been conjectured that parents responsible for younger children are more likely to make more payments. Is the average age of the children of an absent parent associated with the total amount of payments made by the absent parent? (Define a child’s age as the age on Jan 1, 2017.))
 
@@ -253,20 +253,20 @@ The Pearson Correlation Coefficient appears to be very small; therefore, there i
 
 * We can answer this question using an ANOVA test. We set up the following hypothesis test with a confidence level of 95%:
   + Step 1: make assumptions and state null and alternate hypotheses
-    - Assumption 1: we assume that the samples are independent
-    - Assumption 2: we assume the response variable is approximately normally distributed for each category
     - Assumption 3: we assume that the population variances are equal across responses for each category
     - H0: the means of the total amount in payments are the same across all groups
     - Ha: the means of the total amount in payments are *not* the same across all groups
     
+    - Assumption 1: we assume that the samples are independent
 ```{r}
 # Visualization
 temp_df <- left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP)
-temp_df %>% ggplot(mapping = aes(x = as.factor(AP_ADDR_ZIP), y = (total_pymnt))) + geom_boxplot()
+temp_df %>% ggplot(mapping = aes(x = as.factor(AP_ADDR_ZIP), y = log(total_pymnt))) + geom_boxplot()
 ```
 
 All the means looks roughly the same, so we can proceed
 
+    - Assumption 2: we assume the response variable is approximately normally distributed for each category
 ```{r}
 left_join(children_and_pymnts, parents, by = "AP_ID") %>% select(AP_ID, num_child, total_pymnt, AP_ADDR_ZIP) %>% 
   ggplot(mapping = aes(log(total_pymnt))) + geom_density() + facet_grid(~AP_ADDR_ZIP)
@@ -291,6 +291,28 @@ summary(model)
     - Since the p-value is smaller than 0.05, we reject the null hypothesis that the means are equal across all categories
     
 ## (d) Does the combination of attributes of the parent with the number and average age of the children involved predict the total amount of payments made by a parent? Explain your results briefly. (Note: It makes no sense to remove cases with missing values of a categorical variable. Missingness just defines another category of the variable.)
+
+* We can answer this question using multiple linear regression We set up the following hypothesis test with a confidence level of 95%:
+  + Step 1: make assumptions and state null / alternate hypothesis
+    - First, we'll create the graphs and see if we can continue
+```{r}
+linear_model <- lm(total_pymnt ~ num_child + mean_age, data = children_and_payments2)
+plot(linear_model)
+```
+
+    - We conclude assumptions have been met, so we can continue
+    - H0: The number of children and mean ages of the children are not predictors of the total payment amount (Bi = ... = Bk = 0)
+    - Ha: The number of children and mean ages of the children *are* predictors of the total payment amount (at least one Bj != 0)
+    
+  + Step 2/3: find the t-statistic and p-value
+```{r}
+summary(linear_model)
+```
+  + Step 4: make a decision
+    - Since the p-value is less than 0.05, we reject the null hypothesis
+  + Step 5: state a conclusion
+    - Since the p-value is less than 0.05, we reject the null hypothesis that the number of children and mean ages of the children are not predictors of the total payment amount
+
 
 # Question 5: Consistency
 
@@ -341,6 +363,7 @@ paymentgraph %>% ggplot(mapping = aes(x = cv)) +
 ```
 
 ## (d) (Bonus Question) Do any attributes of the parent as revealed in these data anticipate that the parent will make consistent payments, that is, have small CV?
+>>>>>>> Stashed changes
 * We can answer this question using multiple linear regression We set up the following hypothesis test with a confidence level of 95%:
   + Step 1: make assumptions and state null / alternate hypothesis
     - First, we'll create the graphs and see if we can continue
